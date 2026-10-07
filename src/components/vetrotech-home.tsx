@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import brandLogo from "../../images/1709979833185.jpg";
 
 const navigation = [
   ["Home", "home"],
@@ -123,16 +124,10 @@ const solutions = [
 
 const GOOGLE_REVIEWS_URL = "";
 
-function Brand({ inverse = false }: { inverse?: boolean }) {
+function Brand() {
   return (
-    <a href="#home" aria-label="VetroTech Soft Solutions home" className="flex shrink-0 items-center gap-3">
-      <span className={`grid size-10 place-items-center rounded-md ${inverse ? "bg-primary-foreground text-brand-deep" : "bg-brand-deep text-primary-foreground"}`}>
-        <span className="text-sm font-extrabold">V</span>
-      </span>
-      <span className="leading-none">
-        <span className={`block text-base font-extrabold tracking-[0.03em] ${inverse ? "text-primary-foreground" : "text-brand-deep"}`}>VETROTECH</span>
-        <span className={`mt-1 block text-[9px] font-bold tracking-[0.26em] ${inverse ? "text-primary-foreground/60" : "text-muted-foreground"}`}>SOFT SOLUTIONS</span>
-      </span>
+    <a href="#home" aria-label="VetroTech Soft Solutions home" className="flex shrink-0 items-center">
+      <img src={brandLogo} alt="VetroTech Soft Solutions" className="size-16 rounded-full object-cover" />
     </a>
   );
 }
@@ -373,7 +368,7 @@ function Contact() {
       <div className="page-shell"><SectionHeading eyebrow="Contact" title="Let’s Build Something Valuable Together" copy="Share your technology goals with our Hyderabad team and start a practical conversation about the next step." />
         <div className="mt-12 grid overflow-hidden rounded-lg border border-border bg-background shadow-xl shadow-brand-deep/5 lg:grid-cols-[.82fr_1.18fr]">
           <div className="bg-brand-deep p-7 sm:p-10 lg:p-12">
-            <Brand inverse />
+            <Brand />
             <p className="mt-10 text-sm font-semibold uppercase tracking-[0.14em] text-brand-cyan">Contact information</p>
             <div className="mt-7 space-y-7">
               <div className="flex gap-4"><MapPin className="mt-1 size-5 shrink-0 text-brand-cyan" /><div><p className="text-sm font-bold text-primary-foreground">Office address</p><address className="mt-2 text-sm not-italic leading-7 text-primary-foreground/60">Piller No. 744, KS Bakers Lane, Padmajas Raja Enclave, Flat No. 403, above Amrutha Swagruha Foods, near KPHB Bus Stop, Hyderabad, Telangana 500072</address></div></div>
