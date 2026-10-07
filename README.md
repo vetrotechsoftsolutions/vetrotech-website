@@ -786,3 +786,41 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Contact form email delivery
+
+The contact form posts JSON to `/api/submit-enquiry.php`. Its PHP source is
+`api/submit-enquiry.php`; it is intentionally outside the frontend's public
+assets so a non-PHP host cannot expose the server code as a static file. The
+endpoint sends a plain-text email with PHP `mail()` to the configured business
+inbox, validates all fields again on the server, and uses an idempotency token
+to avoid sending the same browser submission twice. No CORS configuration is
+needed when the frontend and endpoint are served from the same origin.
+
+For Hostinger deployment:
+
+1. Use PHP 8.0 or later and configure `CONTACT_FROM_EMAIL` on the server as a
+   valid mailbox on the website's domain (for example, `no-reply@example.com`).
+   Keep this sender configuration server-side; do not use the visitor's email
+   as the From address.
+2. Ensure PHP `mail()` is enabled for that mailbox and the domain's mail DNS
+   (SPF/DKIM) is configured. The endpoint returns an error instead of claiming
+   success if the sender is not configured or `mail()` rejects the message.
+3. Upload `api/submit-enquiry.php` as `public_html/api/submit-enquiry.php` and
+   publish the frontend on that same Hostinger origin. This project currently
+   builds with its Cloudflare Nitro preset; Hostinger shared hosting must also
+   be configured to serve the React app on that origin. Uploading the PHP file
+   alone does not move the Cloudflare-hosted frontend or make PHP run on a
+   Cloudflare/Vercel deployment.
+
+For local development, run PHP in a second terminal from the project root:
+
+```sh
+php -S 127.0.0.1:8000 -t .
+```
+
+The Vite development server proxies the form endpoint to this PHP server. Set
+`CONTACT_FROM_EMAIL` in the PHP server environment before starting it. PHP's
+local `mail()` implementation must also be connected to a mail transport for a
+real delivery test; otherwise, validate the error path locally and test actual
+delivery after configuring Hostinger.

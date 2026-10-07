@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  server: {
+    proxy: {
+      "/api/submit-enquiry.php": "http://127.0.0.1:8000",
+    },
+  },
 });

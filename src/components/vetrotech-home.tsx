@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -124,10 +124,14 @@ const solutions = [
 
 const GOOGLE_REVIEWS_URL = "";
 
-function Brand() {
+function Brand({ header = false }: { header?: boolean }) {
   return (
     <a href="#home" aria-label="VetroTech Soft Solutions home" className="flex shrink-0 items-center">
-      <img src={brandLogo} alt="VetroTech Soft Solutions" className="size-16 rounded-full object-cover" />
+      <img
+        src={brandLogo}
+        alt="VetroTech Soft Solutions"
+        className={header ? "h-auto w-[110px] max-w-full object-contain sm:w-[125px] lg:w-[140px]" : "h-20 w-24 object-fill"}
+      />
     </a>
   );
 }
@@ -145,8 +149,8 @@ function Navbar() {
 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${scrolled || open ? "border-border bg-background/95 shadow-sm backdrop-blur-xl" : "border-transparent bg-background/80 backdrop-blur-md"}`}>
-      <div className="page-shell grid h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-        <Brand />
+      <div className="page-shell grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <Brand header />
         <nav aria-label="Main navigation" className="hidden items-center justify-center gap-1 lg:flex">
           {navigation.map(([label, id]) => (
             <a key={id} href={`#${id}`} className="rounded-md px-3 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
@@ -348,9 +352,20 @@ function Contact() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [sent, setSent] = useState(false);
-  const update = (key: keyof FormState, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const submit = (event: FormEvent) => {
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const submissionIdRef = useRef<string | null>(null);
+  const update = (key: keyof FormState, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setSent(false);
+    setSubmitError("");
+    submissionIdRef.current = null;
+  };
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmittingRef.current) return;
+
     const next: Partial<Record<keyof FormState, string>> = {};
     if (form.fullName.trim().length < 2) next.fullName = "Please enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Please enter a valid business email.";
@@ -358,10 +373,45 @@ function Contact() {
     if (!form.service) next.service = "Please choose a service.";
     if (form.message.trim().length < 10) next.message = "Please share a little more about your requirement.";
     setErrors(next);
-    if (Object.keys(next).length === 0) {
+    if (Object.keys(next).length > 0) {
+      setSent(false);
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    setSent(false);
+    setSubmitError("");
+    submissionIdRef.current ??= crypto.randomUUID();
+
+    try {
+      const response = await fetch("/api/submit-enquiry.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, submissionId: submissionIdRef.current }),
+      });
+      const result: { success?: boolean; message?: string } | null = await response
+        .json()
+        .catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "We couldn't submit your enquiry. Please try again.");
+      }
+
       setSent(true);
       setForm(emptyForm);
-    } else setSent(false);
+      setErrors({});
+      submissionIdRef.current = null;
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't submit your enquiry. Please try again.",
+      );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
   return (
     <section id="contact" className="section-space bg-brand-pale">
@@ -377,19 +427,20 @@ function Contact() {
               <div className="flex gap-4"><Mail className="size-5 shrink-0 text-brand-cyan" /><div><p className="text-sm font-bold text-primary-foreground">Email</p><p className="mt-2 text-sm text-primary-foreground/60">Available upon request</p></div></div>
             </div>
           </div>
-          <form onSubmit={submit} noValidate className="p-7 sm:p-10 lg:p-12" aria-label="Business inquiry form">
+          <form onSubmit={submit} noValidate className="p-7 sm:p-10 lg:p-12" aria-label="Business inquiry form" aria-busy={isSubmitting}>
             <h3 className="text-2xl font-bold text-brand-deep">Tell us about your requirement</h3>
             <p className="mt-2 text-sm text-muted-foreground">Fields marked with * are required.</p>
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              <Field id="fullName" label="Full Name *" error={errors.fullName}><Input id="fullName" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} aria-invalid={Boolean(errors.fullName)} className="h-12" autoComplete="name" /></Field>
-              <Field id="email" label="Business Email *" error={errors.email}><Input id="email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} aria-invalid={Boolean(errors.email)} className="h-12" autoComplete="email" /></Field>
-              <Field id="phone" label="Phone Number *" error={errors.phone}><Input id="phone" type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} aria-invalid={Boolean(errors.phone)} className="h-12" autoComplete="tel" /></Field>
-              <Field id="company" label="Company"><Input id="company" value={form.company} onChange={(e) => update("company", e.target.value)} className="h-12" autoComplete="organization" /></Field>
-              <div className="sm:col-span-2"><Field id="service" label="Service Required *" error={errors.service}><Select value={form.service} onValueChange={(value) => update("service", value)}><SelectTrigger id="service" className="h-12" aria-invalid={Boolean(errors.service)}><SelectValue placeholder="Select a service" /></SelectTrigger><SelectContent>{services.map(({ title }) => <SelectItem key={title} value={title}>{title}</SelectItem>)}</SelectContent></Select></Field></div>
-              <div className="sm:col-span-2"><Field id="message" label="Message *" error={errors.message}><Textarea id="message" value={form.message} onChange={(e) => update("message", e.target.value)} aria-invalid={Boolean(errors.message)} className="min-h-32 resize-y" placeholder="Tell us what you are looking to build, improve or transform." /></Field></div>
+              <Field id="fullName" label="Full Name *" error={errors.fullName}><Input id="fullName" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} aria-invalid={Boolean(errors.fullName)} className="h-12" autoComplete="name" disabled={isSubmitting} /></Field>
+              <Field id="email" label="Business Email *" error={errors.email}><Input id="email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} aria-invalid={Boolean(errors.email)} className="h-12" autoComplete="email" disabled={isSubmitting} /></Field>
+              <Field id="phone" label="Phone Number *" error={errors.phone}><Input id="phone" type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} aria-invalid={Boolean(errors.phone)} className="h-12" autoComplete="tel" disabled={isSubmitting} /></Field>
+              <Field id="company" label="Company"><Input id="company" value={form.company} onChange={(e) => update("company", e.target.value)} className="h-12" autoComplete="organization" disabled={isSubmitting} /></Field>
+              <div className="sm:col-span-2"><Field id="service" label="Service Required *" error={errors.service}><Select value={form.service} onValueChange={(value) => update("service", value)} disabled={isSubmitting}><SelectTrigger id="service" className="h-12" aria-invalid={Boolean(errors.service)}><SelectValue placeholder="Select a service" /></SelectTrigger><SelectContent>{services.map(({ title }) => <SelectItem key={title} value={title}>{title}</SelectItem>)}</SelectContent></Select></Field></div>
+              <div className="sm:col-span-2"><Field id="message" label="Message *" error={errors.message}><Textarea id="message" value={form.message} onChange={(e) => update("message", e.target.value)} aria-invalid={Boolean(errors.message)} className="min-h-32 resize-y" placeholder="Tell us what you are looking to build, improve or transform." disabled={isSubmitting} /></Field></div>
             </div>
-            {sent && <div role="status" className="mt-5 flex items-start gap-3 rounded-md border border-success/25 bg-success/10 p-4 text-sm text-foreground"><CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" /><span><strong>Inquiry validated.</strong> Please call 078428 10649 to submit it directly while online delivery is being configured.</span></div>}
-            <Button type="submit" variant="corporate" size="lg" className="mt-6 w-full sm:w-auto">Send Inquiry <ArrowRight /></Button>
+            {sent && <div role="status" className="mt-5 flex items-start gap-3 rounded-md border border-success/25 bg-success/10 p-4 text-sm text-foreground"><CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" /><span>Thank you! Your enquiry has been submitted successfully. Our team will contact you shortly.</span></div>}
+            {submitError && <p role="alert" className="mt-5 text-sm font-medium text-destructive">{submitError}</p>}
+            <Button type="submit" variant="corporate" size="lg" className="mt-6 w-full sm:w-auto" disabled={isSubmitting}>Send Inquiry <ArrowRight /></Button>
           </form>
         </div>
       </div>
@@ -402,7 +453,7 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 }
 
 function Footer() {
-  return <footer className="bg-brand-deep pt-16 text-primary-foreground"><div className="page-shell grid gap-10 pb-14 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]"><div><Brand inverse /><p className="mt-6 max-w-sm text-sm leading-7 text-primary-foreground/55">A Hyderabad-based software and IT consulting company helping businesses build reliable, scalable digital solutions.</p></div><FooterColumn title="Company" links={[["About", "#about"], ["Services", "#services"], ["Solutions", "#solutions"], ["Industries", "#industries"], ["Contact", "#contact"]]} /><FooterColumn title="Services" links={[["Software Development", "#services"], ["IT Consulting", "#services"], ["Web Development", "#services"], ["Cloud Solutions", "#services"], ["Digital Transformation", "#services"]]} /><div><h3 className="text-sm font-bold">Contact</h3><div className="mt-5 space-y-4 text-sm text-primary-foreground/55"><p className="flex gap-3"><MapPin className="size-4 shrink-0 text-brand-cyan" />Hyderabad, Telangana</p><a href="tel:+917842810649" className="flex gap-3 hover:text-primary-foreground"><Phone className="size-4 shrink-0 text-brand-cyan" />078428 10649</a></div></div></div><div className="border-t border-primary-foreground/10"><div className="page-shell flex flex-col gap-4 py-6 text-xs text-primary-foreground/45 sm:flex-row sm:items-center sm:justify-between"><p>© 2026 VetroTech Soft Solutions. All Rights Reserved.</p><div className="flex gap-5"><span>Privacy Policy</span><span>Terms &amp; Conditions</span></div></div></div></footer>;
+  return <footer className="bg-brand-deep pt-16 text-primary-foreground"><div className="page-shell grid gap-10 pb-14 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]"><div><Brand /><p className="mt-6 max-w-sm text-sm leading-7 text-primary-foreground/55">A Hyderabad-based software and IT consulting company helping businesses build reliable, scalable digital solutions.</p></div><FooterColumn title="Company" links={[["About", "#about"], ["Services", "#services"], ["Solutions", "#solutions"], ["Industries", "#industries"], ["Contact", "#contact"]]} /><FooterColumn title="Services" links={[["Software Development", "#services"], ["IT Consulting", "#services"], ["Web Development", "#services"], ["Cloud Solutions", "#services"], ["Digital Transformation", "#services"]]} /><div><h3 className="text-sm font-bold">Contact</h3><div className="mt-5 space-y-4 text-sm text-primary-foreground/55"><p className="flex gap-3"><MapPin className="size-4 shrink-0 text-brand-cyan" />Hyderabad, Telangana</p><a href="tel:+917842810649" className="flex gap-3 hover:text-primary-foreground"><Phone className="size-4 shrink-0 text-brand-cyan" />078428 10649</a></div></div></div><div className="border-t border-primary-foreground/10"><div className="page-shell flex flex-col gap-4 py-6 text-xs text-primary-foreground/45 sm:flex-row sm:items-center sm:justify-between"><p>© 2026 VetroTech Soft Solutions. All Rights Reserved.</p><div className="flex gap-5"><span>Privacy Policy</span><span>Terms &amp; Conditions</span></div></div></div></footer>;
 }
 
 function FooterColumn({ title, links }: { title: string; links: readonly (readonly [string, string])[] }) {
