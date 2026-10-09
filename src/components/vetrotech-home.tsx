@@ -41,7 +41,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import brandLogo from "../../images/1709979833185.jpg";
+
+const brandLogo = "/images/1709979833185.jpg";
 
 const navigation = [
   ["Home", "home"],
