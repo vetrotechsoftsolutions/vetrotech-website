@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Deploy this endpoint to the PHP-enabled public_html/api directory.
+// Hostinger source: upload as public_html/api/submit-enquiry.php.
 const ENQUIRY_RECIPIENT = 'rankridgeinstitution001@gmail.com';
 const ENQUIRY_SUBJECT = 'New Contact Enquiry - Rankridge';
 const ALLOWED_SERVICES = [

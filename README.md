@@ -804,15 +804,16 @@ npm run dev
 
 ## Contact form email delivery
 
-The contact form posts JSON to `/api/submit-enquiry.php`. Its PHP source is
-`api/submit-enquiry.php`; it is intentionally outside the frontend's public
-assets so a non-PHP host cannot expose the server code as a static file. The
-endpoint sends a plain-text email with PHP `mail()` to the configured business
-inbox, validates all fields again on the server, and uses an idempotency token
-to avoid sending the same browser submission twice. No CORS configuration is
-needed when the frontend and endpoint are served from the same origin.
+The contact form posts JSON to `/api/submit-enquiry`. On Vercel, this is handled
+by `api/submit-enquiry.js`; configure `CONTACT_EMAIL_TO`, `CONTACT_EMAIL_FROM`,
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, and `SMTP_PASS` in the deployment's
+environment variables to enable email delivery.
 
-For Hostinger deployment:
+For Hostinger deployment, the alternate PHP implementation is kept at
+`hosting/submit-enquiry.php` so it does not conflict with Vercel's function of
+the same name. It sends a plain-text email with PHP `mail()`, validates all
+fields on the server, and uses an idempotency token to avoid duplicate
+submissions.
 
 1. Use PHP 8.0 or later and configure `CONTACT_FROM_EMAIL` on the server as a
    valid mailbox on the website's domain (for example, `no-reply@example.com`).
@@ -821,21 +822,21 @@ For Hostinger deployment:
 2. Ensure PHP `mail()` is enabled for that mailbox and the domain's mail DNS
    (SPF/DKIM) is configured. The endpoint returns an error instead of claiming
    success if the sender is not configured or `mail()` rejects the message.
-3. Upload `api/submit-enquiry.php` as `public_html/api/submit-enquiry.php` and
-   publish the frontend on that same Hostinger origin. This project currently
-   builds with its Cloudflare Nitro preset; Hostinger shared hosting must also
-   be configured to serve the React app on that origin. Uploading the PHP file
-   alone does not move the Cloudflare-hosted frontend or make PHP run on a
-   Cloudflare/Vercel deployment.
+3. Upload `hosting/submit-enquiry.php` as `public_html/api/submit-enquiry.php`
+   and publish the frontend on that same Hostinger origin. The form currently
+   requests `/api/submit-enquiry`; configure a server rewrite to the `.php`
+   file or update the request URL in `src/components/vetrotech-home.tsx` for
+   this deployment. Uploading the PHP file alone does not move the frontend or
+   make PHP run on a Vercel deployment.
 
-For local development, run PHP in a second terminal from the project root:
+For direct local testing of the PHP handler, run PHP in a second terminal from
+the project root:
 
 ```sh
 php -S 127.0.0.1:8000 -t .
 ```
 
-The Vite development server proxies the form endpoint to this PHP server. Set
-`CONTACT_FROM_EMAIL` in the PHP server environment before starting it. PHP's
-local `mail()` implementation must also be connected to a mail transport for a
-real delivery test; otherwise, validate the error path locally and test actual
-delivery after configuring Hostinger.
+Set `CONTACT_FROM_EMAIL` in the PHP server environment before starting it.
+PHP's local `mail()` implementation must also be connected to a mail transport
+for a real delivery test; otherwise, validate the error path locally and test
+actual delivery after configuring Hostinger.
