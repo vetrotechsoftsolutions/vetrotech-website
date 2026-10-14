@@ -218,6 +218,21 @@ Our Technology Services
 
 Subtitle:
 
+## Contact form email configuration
+
+The contact form is now handled by the app's server runtime instead of a PHP endpoint. For production mail delivery, configure SMTP and recipient variables in the deployment environment before enabling the form:
+
+```bash
+CONTACT_EMAIL_TO=hello@vetrotechsoftsolutions.com
+CONTACT_EMAIL_FROM=website@vetrotechsoftsolutions.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+```
+
+If these values are not configured, the backend will reject submissions with a 503 response and a user-friendly error message instead of claiming success.
+
 From strategy and development to digital transformation, we provide technology solutions designed around your business needs.
 
 Create 6 premium service cards:

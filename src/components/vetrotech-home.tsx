@@ -386,7 +386,7 @@ function Contact() {
     submissionIdRef.current ??= crypto.randomUUID();
 
     try {
-      const response = await fetch("/api/submit-enquiry.php", {
+      const response = await fetch("/api/submit-enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, submissionId: submissionIdRef.current }),
